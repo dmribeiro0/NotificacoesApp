@@ -71,6 +71,7 @@ interface INotificationChannel
     void Send(string message);
 }
 
+// Proxy que adiciona retry ao envio de notificacoes, delegando a chamada para o canal real.
 class NotificationProxy : INotificationChannel
 {
     private INotificationChannel realChannel;
