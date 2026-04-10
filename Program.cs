@@ -22,7 +22,7 @@ class Settings
 // Fabrica responsavel por criar o canal de notificacao adequado com base no tipo informado.
 static class ChannelFactory {
     // Seleciona e instancia o canal correspondente ao valor recebido.
-    public static NotificationChannel CreateChannel(string channelType) {
+    public static INotificationChannel CreateChannel(string channelType) {
         switch (channelType) {
             case "email":
                 return new EmailNotificationChannel();
@@ -37,13 +37,13 @@ static class ChannelFactory {
 }
 
 // Define o contrato comum para qualquer canal de notificacao.
-interface NotificationChannel
+interface INotificationChannel
 {
     void Send(string message);
 }
 
 // Implementa o envio de notificacoes por email.
-class EmailNotificationChannel : NotificationChannel
+class EmailNotificationChannel : INotificationChannel
 {
     public void Send(string message)
     {
@@ -52,7 +52,7 @@ class EmailNotificationChannel : NotificationChannel
 }
 
 // Implementa o envio de notificacoes por SMS.
-class SmsNotificationChannel : NotificationChannel
+class SmsNotificationChannel : INotificationChannel
 {
     public void Send(string message)
     {
@@ -61,11 +61,40 @@ class SmsNotificationChannel : NotificationChannel
 }
 
 // Implementa o envio de notificacoes por push.
-class PushNotificationChannel : NotificationChannel
+class PushNotificationChannel : INotificationChannel
 {
     public void Send(string message)
     {
         Console.WriteLine($"Sending push notification: {message}");
+    }
+}
+
+interface INotificationSystem 
+{
+    public Settings settings;
+    public INotificationChannel channel;
+
+}
+
+class AmazonNotificationSystem
+{
+    public Settings settings;
+    public INotificationChannel channel;
+
+    public AmazonNotificationSystem() {
+        this.settings = Settings.getInstance();
+        this.channel = ChannelFactory("email");
+    }
+}
+
+class GoogleNotificationSystem
+{
+    public Settings settings;
+    public INotificationChannel channel;
+
+    public GoogleNotificationSystem() {
+        this.settings = Settings.getInstance();
+        this.channel = ChannelFactory("sms");
     }
 }
 
@@ -76,8 +105,8 @@ class Program
 {
     static void Main(string[] args)
     {
-        var settings = Settings.getInstance();
-        var channel = ChannelFactory.CreateChannel("email");
-        channel.Send("Hello, World!");
+        AmazonNotificationSystem amazon = new AmazonNotificationSystem();
+        GoogleNotificationSystem amazon = new GoogleNotificationSystem();
+
     }
 }
