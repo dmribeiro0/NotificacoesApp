@@ -69,34 +69,27 @@ class PushNotificationChannel : INotificationChannel
     }
 }
 
-interface INotificationSystem 
+class AlternativeNotificationChannel
 {
-    public Settings settings;
-    public INotificationChannel channel;
-
-}
-
-class AmazonNotificationSystem
-{
-    public Settings settings;
-    public INotificationChannel channel;
-
-    public AmazonNotificationSystem() {
-        this.settings = Settings.getInstance();
-        this.channel = ChannelFactory("email");
+    public void AlternativeSend(string message)
+    {
+        Console.WriteLine($"Sending alternative notification: {message}");
     }
 }
 
-class GoogleNotificationSystem
+class AlternativeChannelAdapter : INotificationChannel
 {
-    public Settings settings;
-    public INotificationChannel channel;
+    private AlternativeNotificationChannel alternativeChannel;
 
-    public GoogleNotificationSystem() {
-        this.settings = Settings.getInstance();
-        this.channel = ChannelFactory("sms");
+    public AlternativeChannelAdapter(AlternativeNotificationChannel alternativeChannel)  {
+        this.alternativeChannel = alternativeChannel
+    }
+    
+    public void Send() {
+        this.alternativeChannel.AlternativeSend();
     }
 }
+
 
 // Ponto de entrada da aplicacao.
 // O objetivo principal aqui e demonstrar como obter as configuracoes e criar
@@ -105,8 +98,14 @@ class Program
 {
     static void Main(string[] args)
     {
-        AmazonNotificationSystem amazon = new AmazonNotificationSystem();
-        GoogleNotificationSystem amazon = new GoogleNotificationSystem();
+        // Obtem a instancia unica das configuracoes.
+        Settings settings = Settings.getInstance();
+
+        // Cria um canal de notificacao com base no tipo definido nas configuracoes.
+        INotificationChannel channel = ChannelFactory.CreateChannel(settings.ChannelType);
+
+        // Envia uma mensagem de teste usando o canal criado.
+        channel.Send("Hello, this is a test notification!");
 
     }
 }
