@@ -4,17 +4,41 @@ class Settings
 {
     private static Settings instance;
 
-    private string Name { get; set; } = "Name";
-    private string ChannelType { get; set; } = "email";
-    private int MaxRetries { get; set; } = 3;
+    private string Name = "Name";
+    private string ChannelType  = "email";
+    private int MaxRetries = 3;
 
     private Settings() {}
 
-    public static Settings getInstance() {
+    public static Settings GetInstance() {
         if (instance == null) {
             instance = new Settings();
         }
         return instance;
+    }
+
+    public void SetName(string name) {
+        this.Name = name;
+    }
+
+    public void SetChannelType(string channelType) {
+        this.ChannelType = channelType;
+    }
+
+    public void SetMaxRetries(int maxRetries) {
+        this.MaxRetries = maxRetries;
+    }
+
+    public string GetName() {
+        return this.Name;
+    }
+
+    public string GetChannelType() {
+        return this.ChannelType;
+    }
+
+    public int GetMaxRetries() {
+        return this.MaxRetries;
     }
 }
 
@@ -23,16 +47,21 @@ class Settings
 static class ChannelFactory {
     // Seleciona e instancia o canal correspondente ao valor recebido.
     public static INotificationChannel CreateChannel(string channelType) {
+        INotificationChannel channel;
         switch (channelType) {
             case "email":
-                return new EmailNotificationChannel();
+                channel =  new EmailNotificationChannel();
+                break;
             case "sms":
-                return new SmsNotificationChannel();
+                channel = new SmsNotificationChannel();
+                break;
             case "push":
-                return new PushNotificationChannel();
+                channel = new PushNotificationChannel();
+                break;
             default:
                 throw new ArgumentException("Invalid channel type");
         }
+        return new NotificationProxy(channel);
     }
 }
 
@@ -40,6 +69,38 @@ static class ChannelFactory {
 interface INotificationChannel
 {
     void Send(string message);
+}
+
+class NotificationProxy : INotificationChannel
+{
+    private INotificationChannel realChannel;
+    private Settings settings;
+
+    public NotificationProxy(INotificationChannel channel) {
+        this.realChannel = channel;
+        this.settings = Settings.GetInstance();
+    }
+
+    public void Send(string message)  {
+        int attempts = 0;
+        int maxRetries = settings.GetMaxRetries();
+
+        while (attempts < maxRetries)  {
+            try 
+            {
+                Console.WriteLine($"[Proxy] Attempt {attempts + 1}");
+                this.realChannel.Send(message);
+                return;
+            }
+            catch (Exception ex) 
+            {
+                attempts++;
+                Console.WriteLine($"[Proxy] Error: {ex.Message} Retrying...");
+            }
+        }
+
+        Console.WriteLine("[Proxy] All attempts failed.");
+    }
 }
 
 // Implementa o envio de notificacoes por email.
@@ -69,6 +130,7 @@ class PushNotificationChannel : INotificationChannel
     }
 }
 
+// Classe que não segue o padrão da interface
 class AlternativeNotificationChannel
 {
     public void AlternativeSend(string message)
@@ -77,16 +139,17 @@ class AlternativeNotificationChannel
     }
 }
 
+// Adaptador para a classe inconsistente
 class AlternativeChannelAdapter : INotificationChannel
 {
     private AlternativeNotificationChannel alternativeChannel;
 
     public AlternativeChannelAdapter(AlternativeNotificationChannel alternativeChannel)  {
-        this.alternativeChannel = alternativeChannel
+        this.alternativeChannel = alternativeChannel;
     }
     
-    public void Send() {
-        this.alternativeChannel.AlternativeSend();
+    public void Send(string message) {
+        this.alternativeChannel.AlternativeSend(message);
     }
 }
 
@@ -98,14 +161,16 @@ class Program
 {
     static void Main(string[] args)
     {
-        // Obtem a instancia unica das configuracoes.
-        Settings settings = Settings.getInstance();
+        // Obtem a instancia unica de configuracao e define os parametros.
+        Settings settings = Settings.GetInstance();
+        settings.SetName("MyNotificationSystem");
+        settings.SetChannelType("email");
+        settings.SetMaxRetries(3);
 
-        // Cria um canal de notificacao com base no tipo definido nas configuracoes.
-        INotificationChannel channel = ChannelFactory.CreateChannel(settings.ChannelType);
+        // Cria o canal de notificacao usando a fabrica com base na configuracao.
+        INotificationChannel channel = ChannelFactory.CreateChannel(settings.GetChannelType());
 
         // Envia uma mensagem de teste usando o canal criado.
         channel.Send("Hello, this is a test notification!");
-
     }
 }
